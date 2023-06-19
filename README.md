@@ -2,6 +2,9 @@
 
 This is a simple web-based To-Do application that allows you to manage and organize your tasks effectively.
 
+##ScreenShots
+![Screenshot](src/Images/Untitled.png)
+
 ## Features
 
 - Add tasks: Enter your tasks into the input field and click the "Add" button to add them to your to-do list.
@@ -17,7 +20,7 @@ This is a simple web-based To-Do application that allows you to manage and organ
 
 ## How to Use
 
-1. Clone the repository: `git clone <repository-url>`
+1. Clone the repository: `git clone https://github.com/jaiganesh842/ToDo_application.git`
 2. Open the project in your preferred Java IDE.
 3. Build and run the project.
 4. Access the application through your web browser at the specified URL.
@@ -31,5 +34,5 @@ Contributions to this project are welcome. If you have any suggestions or find a
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the Jaiganesh.
 
