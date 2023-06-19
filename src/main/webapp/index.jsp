@@ -4,6 +4,12 @@
 <html>
 <head>
   <link rel="stylesheet" href="./Css/index.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cedarville+Cursive&family=Dancing+Script&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tilt+Prism&display=swap" rel="stylesheet">
   <meta charset="ISO-8859-1">
   <title>Main</title>
 </head>
@@ -34,20 +40,20 @@
     </div>
   </form>
 
-  <p>The items are:</p>
-  <ul>
+  <p>The Items Are :</p>
+  <ol>
     <% for (String temp : items) { %>
     <li>
       <div class="item-container">
-        <%= temp %>
+         <div class="item-content"><%= temp.substring(0, 1).toUpperCase() + temp.substring(1) %></div>
         <form class="form2" action="index.jsp" method="post">
           <input type="hidden" name="remove" value="<%=temp%>" />
-          <input class="remove" type="submit" value="remove" />
+          <input class="remove" type="submit" value="Remove" />
         </form>
-      </div>
+      </div>	
     </li>
     <% } %>
-  </ul>
+  </ol>
 </div>
 </body>
 </html>

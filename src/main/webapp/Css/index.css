@@ -1,74 +1,111 @@
-/* index.css */
-
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-}
-
-.container {
-  text-align: center;
-  border: 1px solid #ccc;
-  padding: 20px;
-  border-radius: 5px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-.input-container {
-  margin-bottom: 10px;
-}
-
-.input1 {
-  padding: 5px;
-  width: 200px;
-}
-
-.Add {
-  padding: 5px 10px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-.Add:hover {
-  background-color: blue;
-}
-
-ul {
-  list-style: none;
-  padding: 0;
-  text-align: left;
-}
-
-li {
-  margin-bottom: 10px;
-}
-
-.item-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.remove {
-  margin-left: 10px;
-  padding: 5px 10px;
-  background-color: #f44336;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-.remove:hover {
-  background-color: #d32f2f;
+body{
+	background-color:#36454F;
 }
 
 .heading {
+  margin-top:20px;
   text-align: center;
-  margin-bottom: 450px;
-  padding-left:500px
+  display: flex;
+  justify-content: center;
+  padding-left:5%;
+  font-size:50px;
+   color: #D8D8F5;
+   font-family: 'Tilt Prism', cursive;
+}
+.container{
+	margin-top:-35px;
+	margin-left:450px;
+	height:550px;
+	width:550px;
+	text-align: center;
+	background-color:black;
+	border: none;
+	border-radius:5px;
+}
+.item-container{
+	display: flex;
+    align-items: center;
+    margin-top:5px;
+    font-size:15px;
+}
+
+.remove{
+	text-align:left;
+	background-color:#19C519;
+	margin-left:15px;
+	margin-top:5px;
+	font-size:20px;
+	border: none;
+	color:white;
+	border-radius:10px;
+	height:25px;
+	width:70px;
+	transition: width 0.5s ease, height 0.5s ease;
+	font-family: 'Dancing Script', cursive;
+}
+.remove:hover{
+	height:30px;
+	width:75px;
+	font-size:20px;
+	border-radius:20px;
+	background-color:green;	
+}
+
+.input-container{
+	padding-top:10px;
+}
+ol{
+	padding-left:+65px;
+	color:white;
+	font-family: 'Dancing Script', cursive;
+	font-size:20px;
+}
+
+p{
+	font-size:30px;
+	font-family: 'Dancing Script', cursive;
+	margin-bottom:-10px;
+	margin-top:10px;
+	 font-weight: bold;
+}
+.Add{
+	font-family: 'Dancing Script', cursive;
+	font-size:30px;
+	color:white;
+	background-color:#FF5B5B;
+	border: none;
+	width:110px;
+	height:50px;
+	margin-left:+10px;
+	border-radius:25px;
+	transition: width 0.5s ease, height 0.5s ease;
+}
+.Add:hover{
+	width:115px;
+	height:55px;
+	background-color:red;
+	border-radius:30px;
+}
+.input1{
+	height:50px;
+	width:350px;
+	font-size:20px;
+}
+.input1:focus{
+	 outline: none;
+}
+
+p{
+	text-align:left;
+	color:white;
+	padding-left:+50px;
+}
+.item-content{
+	padding-top:10px;
+	color:white;
+	font-size:25px;
+    font-family: 'Dancing Script', cursive;
+}
+.item-content::{
+	text-transform: capitalize;
 }
