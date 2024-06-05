@@ -57,17 +57,20 @@
 </div>
 </body>
 </html>
-//import org.junit.Before;
+import com.google.common.collect.Lists;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import sgcib.tsf.dragonBook.DragonBookApplication;
@@ -76,7 +79,6 @@ import sgcib.tsf.dragonBook.model.api.TranscodeRequest;
 import sgcib.tsf.dragonBook.services.GalaxyConnectorServiceImpl;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
@@ -98,25 +100,26 @@ public class GalaxyConnectorServiceImplTest {
     public void setup() {
         restTemplateMock = mock(RestTemplate.class);
         galaxyConnectorServiceImpl = new GalaxyConnectorServiceImpl(restTemplateMock);
-        // Setting the galaxyUrl value
-        galaxyConnectorServiceImpl.galaxyUrl = "https://galaxy-testing/api/v1/instruments";
     }
 
     @Test
     public void testGetEliotCode() {
+        String galaxyUrl = "https://galaxy-testing/api/v1/instruments";
+        galaxyConnectorServiceImpl.galaxyUrl = galaxyUrl;
+
         List<String> bbgCodes = List.of("BBG123");
         TranscodeRequest transcodeRequest = new TranscodeRequest();
         transcodeRequest.setCodeId("FIN_ID_TICKER");
         transcodeRequest.setCodeValues(bbgCodes);
         transcodeRequest.setStaticAttributes(List.of("FIN_ID_TICKER", "FIN_ID_ELIOT"));
-        
+
         GalaxyInstrumentResponse galaxyInstrumentResponse = new GalaxyInstrumentResponse();
         ResponseEntity<GalaxyInstrumentResponse> responseEntity = ResponseEntity.ok(galaxyInstrumentResponse);
 
         HttpEntity<TranscodeRequest> requestEntity = new HttpEntity<>(transcodeRequest);
 
         when(restTemplateMock.exchange(
-            eq("https://galaxy-testing/api/v1/instruments"),
+            eq(galaxyUrl),
             eq(HttpMethod.POST),
             eq(requestEntity),
             eq(GalaxyInstrumentResponse.class)
@@ -130,16 +133,19 @@ public class GalaxyConnectorServiceImplTest {
 
     @Test(expected = HttpServerErrorException.class)
     public void testGetEliotCodeThrowsException() {
+        String galaxyUrl = "https://galaxy-testing/api/v1/instruments";
+        galaxyConnectorServiceImpl.galaxyUrl = galaxyUrl;
+
         List<String> bbgCodes = List.of("BBG123");
         TranscodeRequest transcodeRequest = new TranscodeRequest();
         transcodeRequest.setCodeId("FIN_ID_TICKER");
         transcodeRequest.setCodeValues(bbgCodes);
         transcodeRequest.setStaticAttributes(List.of("FIN_ID_TICKER", "FIN_ID_ELIOT"));
-        
+
         HttpEntity<TranscodeRequest> requestEntity = new HttpEntity<>(transcodeRequest);
 
         when(restTemplateMock.exchange(
-            eq("https://galaxy-testing/api/v1/instruments"),
+            eq(galaxyUrl),
             eq(HttpMethod.POST),
             eq(requestEntity),
             eq(GalaxyInstrumentResponse.class)
@@ -150,19 +156,22 @@ public class GalaxyConnectorServiceImplTest {
 
     @Test
     public void testGetBbgEliotCode() {
+        String galaxyUrl = "https://galaxy-testing/api/v1/instruments";
+        galaxyConnectorServiceImpl.galaxyUrl = galaxyUrl;
+
         List<String> bdrIds = List.of("BDR123");
         TranscodeRequest transcodeRequest = new TranscodeRequest();
         transcodeRequest.setCodeId("FIN_ID_BOR");
         transcodeRequest.setCodeValues(bdrIds);
         transcodeRequest.setStaticAttributes(List.of("FIN_ID_BOR", "FIN_ID_TICKER", "FIN_ID_ELIOT"));
-        
+
         GalaxyInstrumentResponse galaxyInstrumentResponse = new GalaxyInstrumentResponse();
         ResponseEntity<GalaxyInstrumentResponse> responseEntity = ResponseEntity.ok(galaxyInstrumentResponse);
 
         HttpEntity<TranscodeRequest> requestEntity = new HttpEntity<>(transcodeRequest);
 
         when(restTemplateMock.exchange(
-            eq("https://galaxy-testing/api/v1/instruments"),
+            eq(galaxyUrl),
             eq(HttpMethod.POST),
             eq(requestEntity),
             eq(GalaxyInstrumentResponse.class)
@@ -176,16 +185,19 @@ public class GalaxyConnectorServiceImplTest {
 
     @Test(expected = HttpServerErrorException.class)
     public void testGetBbgEliotCodeThrowsException() {
+        String galaxyUrl = "https://galaxy-testing/api/v1/instruments";
+        galaxyConnectorServiceImpl.galaxyUrl = galaxyUrl;
+
         List<String> bdrIds = List.of("BDR123");
         TranscodeRequest transcodeRequest = new TranscodeRequest();
         transcodeRequest.setCodeId("FIN_ID_BOR");
         transcodeRequest.setCodeValues(bdrIds);
         transcodeRequest.setStaticAttributes(List.of("FIN_ID_BOR", "FIN_ID_TICKER", "FIN_ID_ELIOT"));
-        
+
         HttpEntity<TranscodeRequest> requestEntity = new HttpEntity<>(transcodeRequest);
 
         when(restTemplateMock.exchange(
-            eq("https://galaxy-testing/api/v1/instruments"),
+            eq(galaxyUrl),
             eq(HttpMethod.POST),
             eq(requestEntity),
             eq(GalaxyInstrumentResponse.class)
@@ -196,19 +208,22 @@ public class GalaxyConnectorServiceImplTest {
 
     @Test
     public void testGetGalaxyInstrumentResponse() {
+        String galaxyUrl = "https://galaxy-testing/api/v1/instruments";
+        galaxyConnectorServiceImpl.galaxyUrl = galaxyUrl;
+
         List<String> bbgCodes = List.of("BBG123");
         TranscodeRequest transcodeRequest = new TranscodeRequest();
         transcodeRequest.setCodeId("FIN_ID_TICKER");
         transcodeRequest.setCodeValues(bbgCodes);
         transcodeRequest.setStaticAttributes(List.of("FIN_ID_TICKER", "FIN_ID_ELIOT"));
-        
+
         GalaxyInstrumentResponse galaxyInstrumentResponse = new GalaxyInstrumentResponse();
         ResponseEntity<GalaxyInstrumentResponse> responseEntity = ResponseEntity.ok(galaxyInstrumentResponse);
 
         HttpEntity<TranscodeRequest> requestEntity = new HttpEntity<>(transcodeRequest);
 
         when(restTemplateMock.exchange(
-            eq("https://galaxy-testing/api/v1/instruments"),
+            eq(galaxyUrl),
             eq(HttpMethod.POST),
             eq(requestEntity),
             eq(GalaxyInstrumentResponse.class)
@@ -221,16 +236,19 @@ public class GalaxyConnectorServiceImplTest {
 
     @Test(expected = HttpServerErrorException.class)
     public void testGetGalaxyInstrumentResponseThrowsException() {
+        String galaxyUrl = "https://galaxy-testing/api/v1/instruments";
+        galaxyConnectorServiceImpl.galaxyUrl = galaxyUrl;
+
         List<String> bbgCodes = List.of("BBG123");
         TranscodeRequest transcodeRequest = new TranscodeRequest();
         transcodeRequest.setCodeId("FIN_ID_TICKER");
         transcodeRequest.setCodeValues(bbgCodes);
         transcodeRequest.setStaticAttributes(List.of("FIN_ID_TICKER", "FIN_ID_ELIOT"));
-        
+
         HttpEntity<TranscodeRequest> requestEntity = new HttpEntity<>(transcodeRequest);
 
         when(restTemplateMock.exchange(
-            eq("https://galaxy-testing/api/v1/instruments"),
+            eq(galaxyUrl),
             eq(HttpMethod.POST),
             eq(requestEntity),
             eq(GalaxyInstrumentResponse.class)
