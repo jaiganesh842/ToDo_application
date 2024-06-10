@@ -1,0 +1,93 @@
+package sgcib.tsf.dragonBook.services.xone;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.*;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestTemplate;
+import sgcib.tsf.dragonBook.model.xone.basket.compo.*;
+
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.mock;
+
+@SpringBootTest
+@RunWith(SpringRunner.class)
+public class XoneBookDealsImplTest {
+
+    @Mock
+    private RestTemplate restTemplate;
+
+    @InjectMocks
+    private XoneBookDealsImpl xoneBookDealsImpl;
+
+    @Value("${services.xone.dealurl}")
+    private String dealUrl;
+
+    @Value("${services.xone.tradeRefurl}")
+    private String eTagUrl;
+
+    @Before
+    public void setup() {
+        restTemplate = mock(RestTemplate.class);
+        xoneBookDealsImpl = new XoneBookDealsImpl(restTemplate);
+    }
+
+    @Test
+    public void testUpdateEventsSuccess() {
+        String tradeRef = "TRADE123";
+        Boolean basketCompo = true;
+        XoneDeals xoneRequest = new XoneDeals();
+        XoneUpdateEventsResponse expectedResponse = new XoneUpdateEventsResponse();
+
+        Mockito.when(restTemplate.exchange(
+                eq(dealUrl), 
+                eq(HttpMethod.POST), 
+                any(HttpEntity.class), 
+                eq(XoneUpdateEventsResponse.class), 
+                any(Map.class)
+        )).thenReturn(new ResponseEntity<>(expectedResponse, HttpStatus.OK));
+
+        XoneUpdateEventsResponse actualResponse = xoneBookDealsImpl.updateEvents(xoneRequest, tradeRef, basketCompo);
+        assertNotNull(actualResponse);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testUpdateEventsHttpServerErrorException() {
+        String tradeRef = "TRADE123";
+        Boolean basketCompo = true;
+        XoneDeals xoneRequest = new XoneDeals();
+
+        Mockito.when(restTemplate.exchange(
+                eq(dealUrl), 
+                eq(HttpMethod.POST), 
+                any(HttpEntity.class), 
+                eq(XoneUpdateEventsResponse.class), 
+                any(Map.class)
+        )).thenThrow(HttpServerErrorException.class);
+
+        xoneBookDealsImpl.updateEvents(xoneRequest, tradeRef, basketCompo);
+    }
+
+    @Test(expected = DealNotFoundException.class)
+    public void testUpdateEventsDealNotFoundException() {
+        String tradeRef = "TRADE123";
+        Boolean basketCompo = true;
+        XoneDeals xoneRequest = new XoneDeals();
+
+        Mockito.doThrow(new DealNotFoundException("Deal not found"))
+               .when(xoneBookDealsImpl).getTrade(anyString(), any(XoneDeals.class), anyBoolean());
+
+        xoneBookDealsImpl.updateEvents(xoneRequest, tradeRef, basketCompo);
+    }
+}
