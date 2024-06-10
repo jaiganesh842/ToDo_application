@@ -57,153 +57,33 @@
 </div>
 </body>
 </html>
+package sgcib.tsf.dragonBook.services;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.http.*;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestTemplate;
-import sgcib.tsf.dragonBook.model.api.GalaxyInstrumentResponse;
-import sgcib.tsf.dragonBook.model.api.TranscodeRequest;
-import sgcib.tsf.dragonBook.services.GalaxyConnectorServiceImpl;
-
-import java.util.List;
-
-import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-@RunWith(MockitoJUnitRunner.class)
-public class GalaxyConnectorServiceImplTest {
-
-    @Mock
-    private RestTemplate restTemplateMock;
-
-    @InjectMocks
-    private GalaxyConnectorServiceImpl galaxyConnectorServiceImpl;
-
-    @Before
-    public void setup() {
-        // Setting the galaxyUrl value
-        galaxyConnectorServiceImpl.galaxyUrl = "https://galaxy-testing/api/v1/instruments";
-    }
-
-    @Test
-    public void testGetEliotCode_Success() {
-        List<String> bbgCodes = List.of("BBG123");
-        TranscodeRequest transcodeRequest = new TranscodeRequest();
-        transcodeRequest.setCodeId("FIN_ID_TICKER");
-        transcodeRequest.setCodeValues(bbgCodes);
-        transcodeRequest.setStaticAttributes(List.of("FIN_ID_TICKER", "FIN_ID_ELIOT"));
-        
-        GalaxyInstrumentResponse galaxyInstrumentResponse = new GalaxyInstrumentResponse();
-        ResponseEntity<GalaxyInstrumentResponse> responseEntity = ResponseEntity.ok(galaxyInstrumentResponse);
-
-        when(restTemplateMock.exchange(
-            eq("https://galaxy-testing/api/v1/instruments"),
-            eq(HttpMethod.POST),
-            any(HttpEntity.class),
-            eq(GalaxyInstrumentResponse.class)
-        )).thenReturn(responseEntity);
-
-        List<GalaxyInstrumentResponse> result = galaxyConnectorServiceImpl.getEliotCode(bbgCodes);
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(galaxyInstrumentResponse, result.get(0));
-    }
-
-    @Test
-    public void testGetEliotCode_HttpServerErrorException() {
-        List<String> bbgCodes = List.of("BBG123");
-        HttpServerErrorException serverErrorException = new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR);
-
-        when(restTemplateMock.exchange(
-            eq("https://galaxy-testing/api/v1/instruments"),
-            eq(HttpMethod.POST),
-            any(HttpEntity.class),
-            eq(GalaxyInstrumentResponse.class)
-        )).thenThrow(serverErrorException);
-
-        try {
-            galaxyConnectorServiceImpl.getEliotCode(bbgCodes);
-            fail("Expected HttpServerErrorException to be thrown");
-        } catch (HttpServerErrorException e) {
-            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatusCode());
-        }
-    }
-
-    @Test
-    public void testGetBbgEliotCode_Success() {
-        List<String> bdrIds = List.of("BDR123");
-        TranscodeRequest transcodeRequest = new TranscodeRequest();
-        transcodeRequest.setCodeId("FIN_ID_BOR");
-        transcodeRequest.setCodeValues(bdrIds);
-        transcodeRequest.setStaticAttributes(List.of("FIN_ID_BOR", "FIN_ID_TICKER", "FIN_ID_ELIOT"));
-        
-        GalaxyInstrumentResponse galaxyInstrumentResponse = new GalaxyInstrumentResponse();
-        ResponseEntity<GalaxyInstrumentResponse> responseEntity = ResponseEntity.ok(galaxyInstrumentResponse);
-
-        when(restTemplateMock.exchange(
-            eq("https://galaxy-testing/api/v1/instruments"),
-            eq(HttpMethod.POST),
-            any(HttpEntity.class),
-            eq(GalaxyInstrumentResponse.class)
-        )).thenReturn(responseEntity);
-
-        List<GalaxyInstrumentResponse> result = galaxyConnectorServiceImpl.getBbgEliotCode(bdrIds);
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(galaxyInstrumentResponse, result.get(0));
-    }
-
-    @Test
-    public void testGetBbgEliotCode_HttpServerErrorException() {
-        List<String> bdrIds = List.of("BDR123");
-        HttpServerErrorException serverErrorException = new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR);
-
-        when(restTemplateMock.exchange(
-            eq("https://galaxy-testing/api/v1/instruments"),
-            eq(HttpMethod.POST),
-            any(HttpEntity.class),
-            eq(GalaxyInstrumentResponse.class)
-        )).thenThrow(serverErrorException);
-
-        try {
-            galaxyConnectorServiceImpl.getBbgEliotCode(bdrIds);
-            fail("Expected HttpServerErrorException to be thrown");
-        } catch (HttpServerErrorException e) {
-            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatusCode());
-        }
-    }
-}
-------------------------------------------------------------------------------------
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import sgcib.tsf.dragonBook.DragonBookApplication;
+import sgcib.tsf.dragonBook.model.xone.basket.compo.*;
+import sgcib.tsf.dragonBook.services.exception.CustomException;
+import sgcib.tsf.dragonBook.services.exception.DealNotFoundException;
+import sgcib.tsf.dragonBook.services.xone.XoneBookDealsImpl;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
-import sgcib.tsf.dragonBook.DragonBookApplication;
-import sgcib.tsf.dragonBook.model.api.GalaxyInstrumentResponse;
-import sgcib.tsf.dragonBook.model.api.TranscodeRequest;
-import sgcib.tsf.dragonBook.services.GalaxyConnectorServiceImpl;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -211,118 +91,222 @@ import static org.mockito.Mockito.*;
 @ContextConfiguration
 @ActiveProfiles("test")
 @RunWith(SpringRunner.class)
-@ExtendWith(SpringExtension.class)
-public class GalaxyConnectorServiceImplTest {
+public class XoneBookDealsImplTest {
 
     @Mock
-    private RestTemplate restTemplateMock;
+    private RestTemplate restTemplate;
 
     @InjectMocks
-    private GalaxyConnectorServiceImpl galaxyConnectorServiceImpl;
-
     @Autowired
-    private TranscodeRequest transcodeRequest;
+    private XoneBookDealsImpl xoneBookDealsImpl;
 
     @Before
-    public void setup() {
-        // Setting the galaxyUrl value
-        galaxyConnectorServiceImpl.galaxyUrl = "https://galaxy-testing/api/v1/instruments";
+    public void setUp() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void testGetEliotCode_Success() {
-        List<String> bbgCodes = List.of("BBG123");
-        transcodeRequest.setCodeId("FIN_ID_TICKER");
-        transcodeRequest.setCodeValues(bbgCodes);
-        transcodeRequest.setStaticAttributes(List.of("FIN_ID_TICKER", "FIN_ID_ELIOT"));
+    public void testUpdateEventsSuccess() {
+        XoneDeals xoneRequest = buildBasketCompo();
+        String tradeRef = "testTradeRef";
+        String eTag = "testETag";
+        Boolean basketCompo = true;
 
-        GalaxyInstrumentResponse galaxyInstrumentResponse = new GalaxyInstrumentResponse();
-        ResponseEntity<GalaxyInstrumentResponse> responseEntity = ResponseEntity.ok(galaxyInstrumentResponse);
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(XoneUpdateEventsResponse.class), anyMap()))
+                .thenReturn(new ResponseEntity<>(new XoneUpdateEventsResponse(), HttpStatus.OK));
 
-        when(restTemplateMock.exchange(
-            eq("https://galaxy-testing/api/v1/instruments"),
-            eq(HttpMethod.POST),
-            any(HttpEntity.class),
-            eq(GalaxyInstrumentResponse.class)
-        )).thenReturn(responseEntity);
+        doReturn(eTag).when(xoneBookDealsImpl).getTrade(anyString(), any(XoneDeals.class), anyBoolean());
 
-        List<GalaxyInstrumentResponse> result = galaxyConnectorServiceImpl.getEliotCode(bbgCodes);
+        XoneUpdateEventsResponse response = xoneBookDealsImpl.updateEvents(xoneRequest, tradeRef, basketCompo);
 
+        assertNotNull(response);
+        verify(restTemplate, times(1)).exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(XoneUpdateEventsResponse.class), anyMap());
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testUpdateEventsHttpServerErrorException() {
+        XoneDeals xoneRequest = buildBasketCompo();
+        String tradeRef = "testTradeRef";
+        Boolean basketCompo = true;
+
+        doThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR)).when(restTemplate).exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(XoneUpdateEventsResponse.class), anyMap());
+
+        xoneBookDealsImpl.updateEvents(xoneRequest, tradeRef, basketCompo);
+    }
+
+    @Test(expected = DealNotFoundException.class)
+    public void testUpdateEventsDealNotFoundException() {
+        XoneDeals xoneRequest = buildBasketCompo();
+        String tradeRef = "testTradeRef";
+        Boolean basketCompo = true;
+
+        doThrow(new DealNotFoundException("Deal not found")).when(xoneBookDealsImpl).getTrade(anyString(), any(XoneDeals.class), anyBoolean());
+
+        xoneBookDealsImpl.updateEvents(xoneRequest, tradeRef, basketCompo);
+    }
+
+    @Test(expected = CustomException.class)
+    public void testUpdateEventsCustomException() {
+        XoneDeals xoneRequest = buildBasketCompo();
+        String tradeRef = "testTradeRef";
+        Boolean basketCompo = true;
+
+        doThrow(new RuntimeException("General exception")).when(restTemplate).exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(XoneUpdateEventsResponse.class), anyMap());
+
+        xoneBookDealsImpl.updateEvents(xoneRequest, tradeRef, basketCompo);
+    }
+
+    @Test
+    public void testBookDealsSuccess() {
+        XoneDeals lnBDatum = buildBasketCompo();
+
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(XoneUpdateEventsResponse.class)))
+                .thenReturn(new ResponseEntity<>(new XoneUpdateEventsResponse(), HttpStatus.OK));
+
+        XoneUpdateEventsResponse response = xoneBookDealsImpl.bookDeals(lnBDatum);
+
+        assertNotNull(response);
+        verify(restTemplate, times(1)).exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(XoneUpdateEventsResponse.class));
+    }
+
+    @Test(expected = CustomException.class)
+    public void testBookDealsHttpServerErrorException() {
+        XoneDeals lnBDatum = buildBasketCompo();
+
+        doThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR)).when(restTemplate).exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(XoneUpdateEventsResponse.class));
+
+        xoneBookDealsImpl.bookDeals(lnBDatum);
+    }
+
+    @Test(expected = CustomException.class)
+    public void testBookDealsCustomException() {
+        XoneDeals lnBDatum = buildBasketCompo();
+
+        doThrow(new RuntimeException("General exception")).when(restTemplate).exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(XoneUpdateEventsResponse.class));
+
+        xoneBookDealsImpl.bookDeals(lnBDatum);
+    }
+
+    @Test
+    public void testGetTradeSuccess() throws DealNotFoundException {
+        String tradeRef = "testTradeRef";
+        XoneDeals basketCompoRequest = buildBasketCompo();
+        Boolean basketCompo = true;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("eTag", "testETag");
+
+        ResponseEntity<XoneGetBasketDetails> responseEntity = new ResponseEntity<>(new XoneGetBasketDetails(), headers, HttpStatus.OK);
+
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(XoneGetBasketDetails.class), anyMap()))
+                .thenReturn(responseEntity);
+
+        doReturn(true).when(xoneBookDealsImpl).getETag(any(XoneDeals.class), any(ResponseEntity.class), anyBoolean());
+
+        String eTag = xoneBookDealsImpl.getTrade(tradeRef, basketCompoRequest, basketCompo);
+
+        assertNotNull(eTag);
+        assertEquals("testETag", eTag);
+    }
+
+    @Test(expected = DealNotFoundException.class)
+    public void testGetTradeDealNotFoundException() throws DealNotFoundException {
+        String tradeRef = "testTradeRef";
+        XoneDeals basketCompoRequest = buildBasketCompo();
+        Boolean basketCompo = true;
+
+        doThrow(new RuntimeException("Cannot load trade")).when(restTemplate).exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(XoneGetBasketDetails.class), anyMap());
+
+        xoneBookDealsImpl.getTrade(tradeRef, basketCompoRequest, basketCompo);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testGetTradeRuntimeException() throws DealNotFoundException {
+        String tradeRef = "testTradeRef";
+        XoneDeals basketCompoRequest = buildBasketCompo();
+        Boolean basketCompo = true;
+
+        doThrow(new RuntimeException("General exception")).when(restTemplate).exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(XoneGetBasketDetails.class), anyMap());
+
+        xoneBookDealsImpl.getTrade(tradeRef, basketCompoRequest, basketCompo);
+    }
+
+    @Test
+    public void testGetETagWithNewRateFixingTrue() {
+        XoneGetBasketDetails uriResponse = buildXoneGetBasketDetails("2024-04-10");
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("eTag", "qwadfeydwtdwega_");
+        XoneDeals basketCompo = buildBasketCompo();
+        ResponseEntity<XoneGetBasketDetails> response = new ResponseEntity<>(uriResponse, headers, HttpStatus.OK);
+        Boolean result = xoneBookDealsImpl.getETag(basketCompo, response, true);
         assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(galaxyInstrumentResponse, result.get(0));
+        assertTrue(result);
     }
 
     @Test
-    public void testGetEliotCode_HttpServerErrorException() {
-        List<String> bbgCodes = List.of("BBG123");
-        transcodeRequest.setCodeId("FIN_ID_TICKER");
-        transcodeRequest.setCodeValues(bbgCodes);
-        transcodeRequest.setStaticAttributes(List.of("FIN_ID_TICKER", "FIN_ID_ELIOT"));
-
-        HttpServerErrorException serverErrorException = new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR);
-
-        when(restTemplateMock.exchange(
-            eq("https://galaxy-testing/api/v1/instruments"),
-            eq(HttpMethod.POST),
-            any(HttpEntity.class),
-            eq(GalaxyInstrumentResponse.class)
-        )).thenThrow(serverErrorException);
-
-        HttpServerErrorException thrownException = assertThrows(
-            HttpServerErrorException.class,
-            () -> galaxyConnectorServiceImpl.getEliotCode(bbgCodes)
-        );
-
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, thrownException.getStatusCode());
-    }
-
-    @Test
-    public void testGetBbgEliotCode_Success() {
-        List<String> bdrIds = List.of("BDR123");
-        transcodeRequest.setCodeId("FIN_ID_BOR");
-        transcodeRequest.setCodeValues(bdrIds);
-        transcodeRequest.setStaticAttributes(List.of("FIN_ID_BOR", "FIN_ID_TICKER", "FIN_ID_ELIOT"));
-
-        GalaxyInstrumentResponse galaxyInstrumentResponse = new GalaxyInstrumentResponse();
-        ResponseEntity<GalaxyInstrumentResponse> responseEntity = ResponseEntity.ok(galaxyInstrumentResponse);
-
-        when(restTemplateMock.exchange(
-            eq("https://galaxy-testing/api/v1/instruments"),
-            eq(HttpMethod.POST),
-            any(HttpEntity.class),
-            eq(GalaxyInstrumentResponse.class)
-        )).thenReturn(responseEntity);
-
-        List<GalaxyInstrumentResponse> result = galaxyConnectorServiceImpl.getBbgEliotCode(bdrIds);
-
+    public void testGetETagWithNewRateFixingFalse() {
+        XoneGetBasketDetails uriResponse = buildXoneGetBasketDetails("2024-04-08");
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("eTag", "qwadfeydwtdwega_");
+        XoneDeals basketCompo = buildBasketCompo();
+        ResponseEntity<XoneGetBasketDetails> response = new ResponseEntity<>(uriResponse, headers, HttpStatus.OK);
+        Boolean result = xoneBookDealsImpl.getETag(basketCompo, response, true);
         assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(galaxyInstrumentResponse, result.get(0));
+        assertFalse(basketCompo.getEventInfo().getObserveNewRateFixing());
     }
 
-    @Test
-    public void testGetBbgEliotCode_HttpServerErrorException() {
-        List<String> bdrIds = List.of("BDR123");
-        transcodeRequest.setCodeId("FIN_ID_BOR");
-        transcodeRequest.setCodeValues(bdrIds);
-        transcodeRequest.setStaticAttributes(List.of("FIN_ID_BOR", "FIN_ID_TICKER", "FIN_ID_ELIOT"));
+    private XoneDeals buildBasketCompo() {
+        List<BasketComponentsChanges> changesList = new ArrayList<>();
+        List<Fixings> fixingsList = new ArrayList<>();
+        Fixings fixings = Fixings.builder()
+                .fixingType("Stock")
+                .fixingValue(4.35)
+                .fixingName("ABC.LN")
+                .fxRateValue(null)
+                .estimated(false)
+                .manual(true)
+                .build();
+        fixingsList.add(fixings);
+        BasketComponentsChanges basketChange = BasketComponentsChanges.builder()
+                .modificationType("Modified")
+                .underlyingName("ABC.LN")
+                .deltaPonderation(123123)
+                .build();
+        changesList.add(basketChange);
+        XoneEventInfo eventInfo = XoneEventInfo.builder()
+                .comments(null)
+                .eventDate("2024-04-10")
+                .valueDate("2024-04-11")
+                .owner("ABCDE")
+                .confirmationToBeChecked(false)
+                .resetMode("FIFO")
+                .basketRemodellingMode("Standard")
+                .fixings(fixingsList)
+                .basketComponentsChanges(changesList)
+                .observeNewRateFixing(true)
+                .dividendCurrentFlowMode("AccruedCouponWithSamePaymentDate")
+                .equityCurrentFlowMode("AccruedCouponWithEffectivePaymentDate")
+                .rateCurrentFlowMode("AccruedCouponWithEffectivePaymentDate")
+                .build();
+        return XoneDeals.builder()
+                .eventInfo(eventInfo)
+                .actions("BasketIncreaseDecrease")
+                .build();
+    }
 
-        HttpServerErrorException serverErrorException = new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR);
-
-        when(restTemplateMock.exchange(
-            eq("https://galaxy-testing/api/v1/instruments"),
-            eq(HttpMethod.POST),
-            any(HttpEntity.class),
-            eq(GalaxyInstrumentResponse.class)
-        )).thenThrow(serverErrorException);
-
-        HttpServerErrorException thrownException = assertThrows(
-            HttpServerErrorException.class,
-            () -> galaxyConnectorServiceImpl.getBbgEliotCode(bdrIds)
-        );
-
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, thrownException.getStatusCode());
+    private XoneGetBasketDetails buildXoneGetBasketDetails(String date) {
+        XoneGetBasketDetails basketDetails = new XoneGetBasketDetails();
+        XoneProductInfo productInfo = new XoneProductInfo();
+        XoneReturnLeg returnLeg = new XoneReturnLeg();
+        ResetFlows flows = ResetFlows.builder()
+                .flowType("performance")
+                .startDate(date)
+                .build();
+        List<ResetFlows> flowsList = new ArrayList<>();
+        flowsList.add(flows);
+        returnLeg.setFlows(flowsList);
+        productInfo.setReturnLeg(returnLeg);
+        basketDetails.setProductInfo(productInfo);
+        return basketDetails;
     }
 }
-
