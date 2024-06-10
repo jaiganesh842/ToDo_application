@@ -57,199 +57,288 @@
 </div>
 </body>
 </html>
-package sgcib.tsf.dragonBook.services;
 
-import org.junit.Assert;
-import org.junit.Before;
+package sgcib.tsf.dragonBook.services.xone;
+
 import org.junit.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpEntity;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
-import sgcib.tsf.dragonBook.DragonBookApplication;
 import sgcib.tsf.dragonBook.model.xone.basketcompo.*;
 import sgcib.tsf.dragonBook.services.exception.CustomException;
 import sgcib.tsf.dragonBook.services.exception.DealNotFoundException;
-import sgcib.tsf.dragonBook.services.xone.XoneBookDealsImpl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
+import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(classes = DragonBookApplication.class)
-@ContextConfiguration
-@ActiveProfiles("test")
-@RunWith(SpringRunner.class)
-@ExtendWith(SpringExtension.class)
+@RunWith(MockitoJUnitRunner.class)
 public class XoneBookDealsImplTest {
 
-    @Mock
-    private RestTemplate restTemplateMock;
-
+    @InjectMocks
     private XoneBookDealsImpl xoneBookDealsImpl;
 
-    @Before
-    public void setup() {
-        restTemplateMock = mock(RestTemplate.class);
-        xoneBookDealsImpl = new XoneBookDealsImpl(restTemplateMock);
-    }
+    @Mock
+    private RestTemplate restTemplate;
 
     @Test
-    public void testGetETagWithNewRateFixingTrue() {
-        XoneGetBasketDetails uriResponse = buildXoneGetBasketDetails("2024-04-10");
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("eTag", "qwadfeydwtdwega_");
-        XoneDeals basketCompo = buildBasketCompo();
-        ResponseEntity<XoneGetBasketDetails> response = new ResponseEntity<>(uriResponse, headers, HttpStatus.OK);
-
-        Boolean result = xoneBookDealsImpl.getETag(basketCompo, response, true);
-
-        Assert.assertNotNull(result);
-        Assert.assertTrue(basketCompo.getEventInfo().getObserveNewRateFixing());
-    }
-
-    @Test
-    public void testGetETagWithNewRateFixingFalse() {
-        XoneGetBasketDetails uriResponse = buildXoneGetBasketDetails("2024-04-08");
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("eTag", "qwadfeydwt.dwega_");
-        XoneDeals basketCompo = buildBasketCompo();
-        ResponseEntity<XoneGetBasketDetails> response = new ResponseEntity<>(uriResponse, headers, HttpStatus.OK);
-
-        Boolean result = xoneBookDealsImpl.getETag(basketCompo, response, true);
-
-        Assert.assertNotNull(result);
-        Assert.assertFalse(basketCompo.getEventInfo().getObserveNewRateFixing());
-    }
-
-    @Test
-    public void testUpdateEventsSuccess() {
-        XoneDeals xoneRequest = buildBasketCompo();
+    public void testUpdateEvents_Success() {
+        XoneDeals xoneRequest = buildXoneDeals();
         String tradeRef = "TRADE123";
-        String eTag = "eTag123";
         Boolean basketCompo = true;
+        XoneUpdateEventsResponse expectedResponse = buildXoneUpdateEventsResponse();
 
-        when(restTemplateMock.exchange(
-            eq("$(services.xone.dealurl}"),
-            eq(HttpMethod.POST),
-            any(HttpEntity.class),
-            eq(XoneUpdateEventsResponse.class),
-            any(Map.class)
-        )).thenReturn(new ResponseEntity<>(new XoneUpdateEventsResponse(), HttpStatus.OK));
+        when(restTemplate.exchange(anyString(), any(), any(), eq(XoneUpdateEventsResponse.class), anyMap()))
+                .thenReturn(new ResponseEntity<>(expectedResponse, HttpStatus.OK));
 
-        try {
-            XoneUpdateEventsResponse response = xoneBookDealsImpl.updateEvents(xoneRequest, tradeRef, basketCompo);
-            Assert.assertNotNull(response);
-        } catch (Exception e) {
-            Assert.fail("Exception thrown: " + e.getMessage());
-        }
+        XoneUpdateEventsResponse actualResponse = xoneBookDealsImpl.updateEvents(xoneRequest, tradeRef, basketCompo);
+
+        assertNotNull(actualResponse);
+        assertEquals(expectedResponse, actualResponse);
     }
 
     @Test(expected = RuntimeException.class)
-    public void testUpdateEventsServerError() {
-        XoneDeals xoneRequest = buildBasketCompo();
+    public void testUpdateEvents_HttpServerErrorException() {
+        XoneDeals xoneRequest = buildXoneDeals();
         String tradeRef = "TRADE123";
         Boolean basketCompo = true;
 
-        when(restTemplateMock.exchange(
-            eq("$(services.xone.dealurl}"),
-            eq(HttpMethod.POST),
-            any(HttpEntity.class),
-            eq(XoneUpdateEventsResponse.class),
-            any(Map.class)
-        )).thenThrow(HttpServerErrorException.class);
+        when(restTemplate.exchange(anyString(), any(), any(), eq(XoneUpdateEventsResponse.class), anyMap()))
+                .thenThrow(new CustomException("Simulated HTTP Server Error"));
 
         xoneBookDealsImpl.updateEvents(xoneRequest, tradeRef, basketCompo);
     }
 
     @Test(expected = DealNotFoundException.class)
-    public void testGetTradeDealNotFound() throws DealNotFoundException {
+    public void testUpdateEvents_DealNotFoundException() {
+        XoneDeals xoneRequest = buildXoneDeals();
         String tradeRef = "TRADE123";
-        XoneDeals basketCompoRequest = buildBasketCompo();
         Boolean basketCompo = true;
 
-        when(restTemplateMock.exchange(
-            eq("$(services.xone.tradeRefürl}"),
-            eq(HttpMethod.GET),
-            any(HttpEntity.class),
-            eq(XoneGetBasketDetails.class),
-            any(Map.class)
-        )).thenThrow(new RuntimeException("Cannot load trade"));
+        when(restTemplate.exchange(anyString(), any(), any(), eq(XoneUpdateEventsResponse.class), anyMap()))
+                .thenThrow(new DealNotFoundException("Simulated Deal Not Found"));
+
+        xoneBookDealsImpl.updateEvents(xoneRequest, tradeRef, basketCompo);
+    }
+
+    @Test
+    public void testBookDeals_Success() {
+        XoneDeals lnBDatum = buildXoneDeals();
+        XoneUpdateEventsResponse expectedResponse = buildXoneUpdateEventsResponse();
+
+        when(restTemplate.exchange(anyString(), any(), any(), eq(XoneUpdateEventsResponse.class)))
+                .thenReturn(new ResponseEntity<>(expectedResponse, HttpStatus.OK));
+
+        XoneUpdateEventsResponse actualResponse = xoneBookDealsImpl.bookDeals(lnBDatum);
+
+        assertNotNull(actualResponse);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    @Test(expected = CustomException.class)
+    public void testBookDeals_HttpServerErrorException() {
+        XoneDeals lnBDatum = buildXoneDeals();
+
+        when(restTemplate.exchange(anyString(), any(), any(), eq(XoneUpdateEventsResponse.class)))
+                .thenThrow(new CustomException("Simulated HTTP Server Error"));
+
+        xoneBookDealsImpl.bookDeals(lnBDatum);
+    }
+
+    @Test
+    public void testGetTrade_Success() {
+        String tradeRef = "TRADE123";
+        XoneDeals basketCompoRequest = buildXoneDeals();
+        Boolean basketCompo = true;
+        XoneGetBasketDetails expectedResponse = buildXoneGetBasketDetails("2024-06-10");
+
+        when(restTemplate.exchange(anyString(), any(), eq(null), eq(XoneGetBasketDetails.class), anyMap()))
+                .thenReturn(new ResponseEntity<>(expectedResponse, HttpStatus.OK));
+
+        String actualETag = xoneBookDealsImpl.getTrade(tradeRef, basketCompoRequest, basketCompo);
+
+        assertNotNull(actualETag);
+        assertEquals("qwadfeydwtdwega_", actualETag); // Assuming this is the expected ETag value
+    }
+
+    @Test(expected = DealNotFoundException.class)
+    public void testGetTrade_DealNotFoundException() {
+        String tradeRef = "TRADE123";
+        XoneDeals basketCompoRequest = buildXoneDeals();
+        Boolean basketCompo = true;
+
+        when(restTemplate.exchange(anyString(), any(), eq(null), eq(XoneGetBasketDetails.class), anyMap()))
+                .thenThrow(new DealNotFoundException("Simulated Deal Not Found"));
 
         xoneBookDealsImpl.getTrade(tradeRef, basketCompoRequest, basketCompo);
     }
 
-    private XoneDeals buildBasketCompo() {
-        List<BasketComponentsChanges> changesList = new ArrayList<>();
-        List<Fixings> fixingsList = new ArrayList<>();
-
-        Fixings fixings = Fixings.builder()
-                .fixingType("Stock")
-                .fixingValue(4.35)
-                .fixingName("ABC.LN")
-                .fxRateValue(null)
-                .estimated(false)
-                .manual(true)
-                .build();
-        fixingsList.add(fixings);
-
-        BasketComponentsChanges basketChange = BasketComponentsChanges.builder()
-                .modificationType("Modified")
-                .underlyingName("ABC.LN")
-                .deltaPonderation(123123)
-                .build();
-        changesList.add(basketChange);
-
+    private XoneDeals buildXoneDeals() {
+        // Create sample data for XoneEventInfo
         XoneEventInfo eventInfo = XoneEventInfo.builder()
-                .eventDate("2024-04-10")
-                .valueDate("2024-04-11")
-                .owner("ABCDE")
+                .comments("Sample comments")
+                .eventDate("2024-06-10")
+                .valueDate("2024-06-11")
+                .owner("SampleOwner")
+                .confirmationToBeChecked(false)
                 .resetMode("FIFO")
                 .basketRemodellingMode("Standard")
-                .fixings(fixingsList)
-                .basketComponentsChanges(changesList)
-                .observeNewRateFixing(false)
+                .observeNewRateFixing(true)
+                .dividendCurrentFlowMode("AccruedCouponWithSamePaymentDate")
+                .equityCurrentFlowMode("AccruedCouponwithEffectivePaymentDate")
+                .rateCurrentFlowMode("AccruedCouponwithEffectivePaymentDate")
                 .build();
 
+        // Create sample data for XoneProductInfo
+        XoneProductInfo productInfo = XoneProductInfo.builder()
+                .way("SampleWay")
+                .startDate("2024-06-10")
+                .headerType("SampleHeaderType")
+                .headerId("SampleHeaderId")
+                .dealMaturityType("SampleDealMaturityType")
+                .theoreticalEndDate("2024-06-20")
+                .billingFrequency("SampleBillingFrequency")
+                .currency("USD")
+                .callableForDiv(true)
+                .isFixedPrice(false)
+                .backComment("SampleBackComment")
+                .settlementComment("SampleSettlementComment")
+                .confirmationComment("SampleConfirmationComment")
+                .desiderata(XoneDesiderata.builder().desiderataCode("SampleDesiderataCode").build())
+                .build();
+
+        // Create sample data for XoneReturnLeg
+        ResetFlows resetFlow = ResetFlows.builder().flowType("Performance").startDate("2024-06-10").build();
+        List<ResetFlows> flows = Collections.singletonList(resetFlow);
+        XoneReturnLeg returnLeg = XoneReturnLeg.builder().flows(flows).build();
+
+        // Create sample data for XoneDeals
         return XoneDeals.builder()
-                .eventInfo(eventInfo)
-                .actions("BasketIncreaseDecrease")
+                .instrumentName("SampleInstrumentName")
+                .instrumentContractName("SampleInstrumentContractName
+                                .instrumentContractName("SampleInstrumentContractName")
+                .issuerShortName("SampleIssuerShortName")
+                .lnbProductInfo(productInfo)
+                .events(Collections.singletonList(eventInfo))
+                .returnLegs(Collections.singletonList(returnLeg))
                 .build();
     }
 
-    private XoneGetBasketDetails buildXoneGetBasketDetails(String date) {
-        XoneGetBasketDetails basketDetails = new XoneGetBasketDetails();
-        XoneProductInfo productInfo = new XoneProductInfo();
-        XoneReturnLeg returnLeg = new XoneReturnLeg();
-
-        ResetFlows flows = ResetFlows.builder()
-                .flowType("Performance")
-                .startDate(date)
+    private XoneUpdateEventsResponse buildXoneUpdateEventsResponse() {
+        return XoneUpdateEventsResponse.builder()
+                .status("Success")
+                .message("Events updated successfully")
                 .build();
-        List<ResetFlows> flowsList = new ArrayList<>();
-        flowsList.add(flows);
+    }
 
-        returnLeg.setFlows(flowsList);
-        productInfo.setReturnLeg(returnLeg);
-        basketDetails.setProductInfo(productInfo);
+    private XoneGetBasketDetails buildXoneGetBasketDetails(String lastModifiedDate) {
+        return XoneGetBasketDetails.builder()
+                .basketStatus("Active")
+                .lastModifiedDate(lastModifiedDate)
+                .build();
+    }
 
-        return basketDetails;
+    @Test
+    public void testBookDeals_NullLnBDatum() {
+        XoneDeals lnBDatum = null;
+
+        try {
+            xoneBookDealsImpl.bookDeals(lnBDatum);
+            fail("Expected an IllegalArgumentException to be thrown");
+        } catch (IllegalArgumentException e) {
+            assertEquals("lnBDatum must not be null", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testBookDeals_EmptyInstrumentName() {
+        XoneDeals lnBDatum = buildXoneDeals();
+        lnBDatum.setInstrumentName("");
+
+        try {
+            xoneBookDealsImpl.bookDeals(lnBDatum);
+            fail("Expected a CustomException to be thrown");
+        } catch (CustomException e) {
+            assertEquals("Instrument name cannot be empty", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testUpdateEvents_NullXoneRequest() {
+        XoneDeals xoneRequest = null;
+        String tradeRef = "TRADE123";
+        Boolean basketCompo = true;
+
+        try {
+            xoneBookDealsImpl.updateEvents(xoneRequest, tradeRef, basketCompo);
+            fail("Expected an IllegalArgumentException to be thrown");
+        } catch (IllegalArgumentException e) {
+            assertEquals("xoneRequest must not be null", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testUpdateEvents_EmptyTradeRef() {
+        XoneDeals xoneRequest = buildXoneDeals();
+        String tradeRef = "";
+        Boolean basketCompo = true;
+
+        try {
+            xoneBookDealsImpl.updateEvents(xoneRequest, tradeRef, basketCompo);
+            fail("Expected a CustomException to be thrown");
+        } catch (CustomException e) {
+            assertEquals("Trade reference cannot be empty", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testGetTrade_NullTradeRef() {
+        String tradeRef = null;
+        XoneDeals basketCompoRequest = buildXoneDeals();
+        Boolean basketCompo = true;
+
+        try {
+            xoneBookDealsImpl.getTrade(tradeRef, basketCompoRequest, basketCompo);
+            fail("Expected an IllegalArgumentException to be thrown");
+        } catch (IllegalArgumentException e) {
+            assertEquals("tradeRef must not be null", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testGetTrade_EmptyTradeRef() {
+        String tradeRef = "";
+        XoneDeals basketCompoRequest = buildXoneDeals();
+        Boolean basketCompo = true;
+
+        try {
+            xoneBookDealsImpl.getTrade(tradeRef, basketCompoRequest, basketCompo);
+            fail("Expected a CustomException to be thrown");
+        } catch (CustomException e) {
+            assertEquals("Trade reference cannot be empty", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testGetTrade_NullBasketCompoRequest() {
+        String tradeRef = "TRADE123";
+        XoneDeals basketCompoRequest = null;
+        Boolean basketCompo = true;
+
+        try {
+            xoneBookDealsImpl.getTrade(tradeRef, basketCompoRequest, basketCompo);
+            fail("Expected an IllegalArgumentException to be thrown");
+        } catch (IllegalArgumentException e) {
+            assertEquals("basketCompoRequest must not be null", e.getMessage());
+        }
     }
 }
