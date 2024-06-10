@@ -1,0 +1,80 @@
+package sgcib.tsf.dragonBook.services.xone;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.*;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestTemplate;
+import sgcib.tsf.dragonBook.model.xone.basket.compo.*;
+
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.mock;
+
+@SpringBootTest
+@RunWith(SpringRunner.class)
+public class XoneBookDealsImplTest {
+
+    @Mock
+    private RestTemplate restTemplate;
+
+    @InjectMocks
+    private XoneBookDealsImpl xoneBookDealsImpl;
+
+    @Value("${services.xone.tradeRefurl}")
+    private String eTagUrl;
+
+    @Before
+    public void setup() {
+        restTemplate = mock(RestTemplate.class);
+        xoneBookDealsImpl = new XoneBookDealsImpl(restTemplate);
+    }
+
+    @Test
+    public void testGetTradeSuccess() throws DealNotFoundException {
+        String tradeRef = "TRADE123";
+        XoneDeals basketCompoRequest = new XoneDeals();
+        Boolean basketCompo = true;
+        XoneGetBasketDetails basketDetails = new XoneGetBasketDetails();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setETag("etag_12345");
+
+        Mockito.when(restTemplate.exchange(
+                eq(eTagUrl), 
+                eq(HttpMethod.GET), 
+                any(HttpEntity.class), 
+                eq(XoneGetBasketDetails.class), 
+                any(Map.class)
+        )).thenReturn(new ResponseEntity<>(basketDetails, headers, HttpStatus.OK));
+
+        String eTag = xoneBookDealsImpl.getTrade(tradeRef, basketCompoRequest, basketCompo);
+        assertNotNull(eTag);
+        assertEquals("etag_12345", eTag);
+    }
+
+    @Test(expected = DealNotFoundException.class)
+    public void testGetTradeDealNotFoundException() throws DealNotFoundException {
+        String tradeRef = "TRADE123";
+        XoneDeals basketCompoRequest = new XoneDeals();
+        Boolean basketCompo = true;
+
+        Mockito.when(restTemplate.exchange(
+                eq(eTagUrl), 
+                eq(HttpMethod.GET), 
+                any(HttpEntity.class), 
+                eq(XoneGetBasketDetails.class), 
+                any(Map.class)
+        )).thenThrow(new RuntimeException("Cannot load trade"));
+
+        xoneBookDealsImpl.getTrade(tradeRef, basketCompoRequest, basketCompo);
+    }
+}
