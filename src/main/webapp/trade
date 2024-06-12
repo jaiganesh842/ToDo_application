@@ -1,80 +1,113 @@
-package sgcib.tsf.dragonBook.services.xone;
-
+import com.google.gson.Gson;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.*;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
-import sgcib.tsf.dragonBook.model.xone.basket.compo.*;
+import sgcib.tsf.dragonBook.DragonBookApplication;
+import sgcib.tsf.dragonBook.model.api.GalaxyInstrumentResponse;
+import sgcib.tsf.dragonBook.model.api.TranscodeRequest;
 
-import java.util.Map;
+import java.util.Collections;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 
-@SpringBootTest
+@SpringBootTest(classes = DragonBookApplication.class)
+@ContextConfiguration
+@ActiveProfiles("test")
 @RunWith(SpringRunner.class)
-public class XoneBookDealsImplTest {
+@ExtendWith(SpringExtension.class)
+public class GalaxyConnectorServiceImplTest {
 
     @Mock
-    private RestTemplate restTemplate;
+    private RestTemplate restTemplateMock;
 
-    @InjectMocks
-    private XoneBookDealsImpl xoneBookDealsImpl;
-
-    @Value("${services.xone.tradeRefurl}")
-    private String eTagUrl;
+    private GalaxyConnectorServiceImpl galaxyConnectorService;
 
     @Before
     public void setup() {
-        restTemplate = mock(RestTemplate.class);
-        xoneBookDealsImpl = new XoneBookDealsImpl(restTemplate);
+        restTemplateMock = mock(RestTemplate.class);
+        galaxyConnectorService = new GalaxyConnectorServiceImpl(restTemplateMock);
+        galaxyConnectorService.setGalaxyUrl("https://galaxy-testing/api/v1/instruments");
     }
 
     @Test
-    public void testGetTradeSuccess() throws DealNotFoundException {
-        String tradeRef = "TRADE123";
-        XoneDeals basketCompoRequest = new XoneDeals();
-        Boolean basketCompo = true;
-        XoneGetBasketDetails basketDetails = new XoneGetBasketDetails();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setETag("etag_12345");
+    public void testGetGalaxyInstrumentResponse() {
+        List<String> bbgCode = List.of("BBG123");
+        TranscodeRequest transcodeRequest = new TranscodeRequest();
+        transcodeRequest.setCodeId("FIN_ID_TICKER");
+        List<String> staticAttributes = List.of("FIN_ID_TICKER", "FIN_ID_ELIOT");
 
-        Mockito.when(restTemplate.exchange(
-                eq(eTagUrl), 
-                eq(HttpMethod.GET), 
-                any(HttpEntity.class), 
-                eq(XoneGetBasketDetails.class), 
-                any(Map.class)
-        )).thenReturn(new ResponseEntity<>(basketDetails, headers, HttpStatus.OK));
+        GalaxyInstrumentResponse expectedResponse = new GalaxyInstrumentResponse();
+        ResponseEntity<GalaxyInstrumentResponse> responseEntity = ResponseEntity.ok(expectedResponse);
 
-        String eTag = xoneBookDealsImpl.getTrade(tradeRef, basketCompoRequest, basketCompo);
-        assertNotNull(eTag);
-        assertEquals("etag_12345", eTag);
+        Mockito.when(restTemplateMock.exchange(
+                eq("https://galaxy-testing/api/v1/instruments"),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(GalaxyInstrumentResponse.class)))
+            .thenReturn(responseEntity);
+
+        ResponseEntity<GalaxyInstrumentResponse> response = galaxyConnectorService.getGalaxyInstrumentResponse(bbgCode, transcodeRequest, staticAttributes);
+
+        Assert.assertNotNull(response);
+        Assert.assertEquals(expectedResponse, response.getBody());
     }
 
-    @Test(expected = DealNotFoundException.class)
-    public void testGetTradeDealNotFoundException() throws DealNotFoundException {
-        String tradeRef = "TRADE123";
-        XoneDeals basketCompoRequest = new XoneDeals();
-        Boolean basketCompo = true;
+    @Test(expected = HttpServerErrorException.class)
+    public void testGetGalaxyInstrumentResponse_ServerError() {
+        List<String> bbgCode = List.of("BBG123");
+        TranscodeRequest transcodeRequest = new TranscodeRequest();
+        transcodeRequest.setCodeId("FIN_ID_TICKER");
+        List<String> staticAttributes = List.of("FIN_ID_TICKER", "FIN_ID_ELIOT");
 
-        Mockito.when(restTemplate.exchange(
-                eq(eTagUrl), 
-                eq(HttpMethod.GET), 
-                any(HttpEntity.class), 
-                eq(XoneGetBasketDetails.class), 
-                any(Map.class)
-        )).thenThrow(new RuntimeException("Cannot load trade"));
+        Mockito.when(restTemplateMock.exchange(
+                eq("https://galaxy-testing/api/v1/instruments"),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(GalaxyInstrumentResponse.class)))
+            .thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
 
-        xoneBookDealsImpl.getTrade(tradeRef, basketCompoRequest, basketCompo);
+        galaxyConnectorService.getGalaxyInstrumentResponse(bbgCode, transcodeRequest, staticAttributes);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testGetEliotCode_ServerError() {
+        List<String> bbgCode = List.of("BBG123");
+
+        Mockito.when(restTemplateMock.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(GalaxyInstrumentResponse.class)))
+            .thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
+
+        galaxyConnectorService.getEliotCode(bbgCode);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testGetBbgEliotCode_ServerError() {
+        List<String> bdrId = List.of("BDR123");
+
+        Mockito.when(restTemplateMock.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(GalaxyInstrumentResponse.class)))
+            .thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
+
+        galaxyConnectorService.getBbgEliotCode(bdrId);
     }
 }
