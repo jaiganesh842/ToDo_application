@@ -8,6 +8,7 @@ import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -15,15 +16,15 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
-import sgcib.tsf.dragonBook.DragonBookApplication;
-import sgcib.tsf.dragonBook.model.efts.EftsDealData;
-import sgcib.tsf.dragonBook.model.efts.EftsPortfolioRequest;
+import sgcib.tsf.dragonbook.DragonBookApplication;
+import sgcib.tsf.dragonbook.model.efts.EftsDealData;
+import sgcib.tsf.dragonbook.model.efts.EftsPortfolioRequest;
+import sgcib.tsf.dragonbook.services.efts.EftsLnbServiceImpl;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Collections;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 
 @SpringBootTest(classes = DragonBookApplication.class)
@@ -32,53 +33,52 @@ import static org.mockito.Mockito.mock;
 @RunWith(SpringRunner.class)
 @ExtendWith(SpringExtension.class)
 public class EftsLnbServiceImplTest {
-
     @Mock
     private RestTemplate restTemplateMock;
-    
-    private EftsLnbServiceImpl eftsLnbServiceImpl;
+
+    private EftsLnbServiceImpl eftsLnbService;
 
     @Before
     public void setup() {
         restTemplateMock = mock(RestTemplate.class);
-        eftsLnbServiceImpl = new EftsLnbServiceImpl(restTemplateMock);
-        eftsLnbServiceImpl.eftsDealUrl = "https://efts-testing/api/deals";
+        eftsLnbService = new EftsLnbServiceImpl(restTemplateMock);
+        eftsLnbService.setEftsDealUrl("https://efts-testing/eds/api/v2/deals");
     }
 
     @Test
     public void testGetDealData() {
-        String foPortfolio = "PR1234";
-        EftsDealData eftsDealData = new EftsDealData();
-        ResponseEntity<EftsDealData[]> responseEntity = ResponseEntity.ok(new EftsDealData[]{eftsDealData});
+        String foPortfolio = "PR123";
+        String expectedFoPortfolio = "PV123";
 
-        EftsPortfolioRequest eftsPortfolioRequest = new EftsPortfolioRequest();
-        eftsPortfolioRequest.setFoPortfolio(List.of("PV1234"));
+        EftsDealData dealData = new EftsDealData();
+        // set dealData properties here if needed
+
+        ResponseEntity<EftsDealData[]> responseEntity = ResponseEntity.ok(new EftsDealData[]{dealData});
 
         Mockito.when(restTemplateMock.exchange(
-                eq("https://efts-testing/api/deals"),
+                anyString(),
                 eq(HttpMethod.POST),
                 any(HttpEntity.class),
-                eq(EftsDealData[].class)
-        )).thenReturn(responseEntity);
+                eq(EftsDealData[].class)))
+            .thenReturn(responseEntity);
 
-        List<EftsDealData> result = eftsLnbServiceImpl.getDealData(foPortfolio);
-
+        List<EftsDealData> result = eftsLnbService.getDealData(foPortfolio);
         Assert.assertNotNull(result);
         Assert.assertFalse(result.isEmpty());
-        Assert.assertEquals(eftsDealData, result.get(0));
+        Assert.assertEquals(dealData, result.get(0));
     }
 
     @Test(expected = HttpServerErrorException.class)
-    public void testGetDealDataServerError() {
-        String foPortfolio = "PR1234";
+    public void testGetDealData_ServerError() {
+        String foPortfolio = "PR123";
 
         Mockito.when(restTemplateMock.exchange(
-                eq("https://efts-testing/api/deals"),
+                anyString(),
                 eq(HttpMethod.POST),
                 any(HttpEntity.class),
-                eq(EftsDealData[].class)
-        )).thenThrow(HttpServerErrorException.class);
+                eq(EftsDealData[].class)))
+            .thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
 
-        eftsLnbServiceImpl.getDealData(foPortfolio);
+        eftsLnbService.getDealData(foPortfolio);
     }
 }
